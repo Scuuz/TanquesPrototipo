@@ -11,6 +11,7 @@
 
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Pool;
 
 public class TankShooting : MonoBehaviour
 {
@@ -22,7 +23,24 @@ public class TankShooting : MonoBehaviour
     [SerializeField] private Transform _firePoint;
     [SerializeField] private float _fireRate = 0.5f;
 
+    [Header("Pool")]
+    [SerializeField] private int _poolDefaultCapacity = 10;
+    [SerializeField] private int _poolMaxSize = 30;
+
     private float _nextFireTime;
+    private ObjectPool<Shell> _shellPool;
+
+    private void Awake()
+    {
+        _shellPool = new ObjectPool<Shell>(
+            CreateShell,
+            OnGetShell,
+            OnReleaseShell,
+            OnDestroyShell,
+            true,
+            _poolDefaultCapacity,
+            _poolMaxSize);
+    }
 
     private void OnEnable()
     {
@@ -46,7 +64,29 @@ public class TankShooting : MonoBehaviour
     {
         _nextFireTime = Time.time + _fireRate;
 
+        Shell shell = _shellPool.Get();
+        shell.Launch(_firePoint.position, _firePoint.rotation, _firePoint.forward);
+    }
+
+    private Shell CreateShell()
+    {
         Shell shell = Instantiate(_shellPrefab, _firePoint.position, _firePoint.rotation);
-        shell.Launch(_firePoint.forward);
+        shell.SetPool (_shellPool);
+        return shell;
+    }
+
+    private void OnGetShell (Shell shell)
+    {
+        shell.gameObject.SetActive(true);
+    }
+
+    private void OnReleaseShell (Shell shell)
+    {
+        shell.gameObject.SetActive(false);
+    }
+
+    private void OnDestroyShell(Shell shell)
+    {
+        Destroy(shell.gameObject);
     }
 }
