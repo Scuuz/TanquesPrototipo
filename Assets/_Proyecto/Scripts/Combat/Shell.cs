@@ -1,7 +1,7 @@
 /*
  * Shell.cs
  *
- * Proyectil del tanque que se destruye al impactar o pasar el tiempo de vida
+ * Proyectil del tanque que aplica daño al impactar y vuelve al pool al chocarse con algo o pasar el tiempo de vida
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 25/09/2026
@@ -17,9 +17,11 @@ public class Shell : MonoBehaviour
 {
     [SerializeField] private float _speed = 20f;
     [SerializeField] private float _lifeTime = 3f;
+    [SerializeField] private float _damage = 25f;
 
     private Rigidbody _rb;
     private IObjectPool<Shell> _pool;
+    private EffectPool _impactEffectPool;
     private float _lifeTimer;
     private bool _isReleased;
 
@@ -28,9 +30,10 @@ public class Shell : MonoBehaviour
         _rb = GetComponent<Rigidbody>();
     } 
 
-    public void SetPool (IObjectPool<Shell> pool)
+    public void Init (IObjectPool<Shell> pool, EffectPool impactEffectPool)
     {
         _pool = pool;
+        _impactEffectPool = impactEffectPool;
     }
 
     public void Launch (Vector3 position, Quaternion rotation, Vector3 direction)
@@ -55,8 +58,16 @@ public class Shell : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        //float flightTime = _lifeTime - _lifeTimer;
-        //Debug.Log($"{name} chocó con {other.name} después de {flightTime:F2} s", other);
+        IDamageable target = other.GetComponentInParent<IDamageable>();
+        if (target != null)
+        {
+            target.TakeDamage(_damage);
+        }
+
+        if (_impactEffectPool != null)
+        {
+            _impactEffectPool.Play(transform.position);
+        }
         ReturnToPool();
     }
 

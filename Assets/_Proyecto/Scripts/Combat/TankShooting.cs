@@ -1,7 +1,7 @@
 /*
  * TankShooting.cs
  *
- * Disparar los proyectiles desde el FirePoint. Tiene un cooldown al disparar.
+ * Disparar los proyectiles desde el FirePoint. Tiene un cooldown al disparar. Se usa Object Pool.
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 25/09/2026
@@ -22,10 +22,12 @@ public class TankShooting : MonoBehaviour
     [SerializeField] private Shell _shellPrefab;
     [SerializeField] private Transform _firePoint;
     [SerializeField] private float _fireRate = 0.5f;
+    [SerializeField] private EffectPool _impactEffectPool;
 
     [Header("Pool")]
     [SerializeField] private int _poolDefaultCapacity = 10;
     [SerializeField] private int _poolMaxSize = 30;
+
 
     private float _nextFireTime;
     private ObjectPool<Shell> _shellPool;
@@ -71,7 +73,7 @@ public class TankShooting : MonoBehaviour
     private Shell CreateShell()
     {
         Shell shell = Instantiate(_shellPrefab, _firePoint.position, _firePoint.rotation);
-        shell.SetPool (_shellPool);
+        shell.Init (_shellPool, _impactEffectPool);
         return shell;
     }
 
