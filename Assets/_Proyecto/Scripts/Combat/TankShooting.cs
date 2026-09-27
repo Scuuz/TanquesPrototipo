@@ -1,22 +1,20 @@
 /*
  * TankShooting.cs
  *
- * Disparar los proyectiles desde el FirePoint. Tiene un cooldown al disparar. Se usa Object Pool.
+ * Se usa Object Pool para disparar los proyectiles desde el FirePoint respetando el cooldown (Player y Enemigos).
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 25/09/2026
+ * Modificación: 26/09/2026
  * Proyecto: TanquesPrototipo - Programación 2
  */
 
 
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Pool;
 
 public class TankShooting : MonoBehaviour
 {
-    [Header ("Input")]
-    [SerializeField] private InputActionReference _shootAction;
 
     [Header ("Shooting")]
     [SerializeField] private Shell _shellPrefab;
@@ -32,6 +30,9 @@ public class TankShooting : MonoBehaviour
     private float _nextFireTime;
     private ObjectPool<Shell> _shellPool;
 
+    public Transform FirePoint => _firePoint;
+    public bool CanFire => Time.time >= _nextFireTime;
+
     private void Awake()
     {
         _shellPool = new ObjectPool<Shell>(
@@ -44,30 +45,17 @@ public class TankShooting : MonoBehaviour
             _poolMaxSize);
     }
 
-    private void OnEnable()
-    {
-        _shootAction.action.Enable();
-    }
+    
 
-    private void OnDisable()
+    public bool TryFire()
     {
-        _shootAction.action.Disable();
-    }
+        if (!CanFire) return false;
 
-    private void Update()
-    {
-        if (_shootAction.action.WasPressedThisFrame() && Time.time >= _nextFireTime)
-        {
-            Fire();
-        }
-    }
-
-    private void Fire()
-    {
         _nextFireTime = Time.time + _fireRate;
 
         Shell shell = _shellPool.Get();
         shell.Launch(_firePoint.position, _firePoint.rotation, _firePoint.forward);
+        return true;
     }
 
     private Shell CreateShell()
@@ -77,18 +65,8 @@ public class TankShooting : MonoBehaviour
         return shell;
     }
 
-    private void OnGetShell (Shell shell)
-    {
-        shell.gameObject.SetActive(true);
-    }
+    private void OnGetShell (Shell shell) { shell.gameObject.SetActive(true);}
+    private void OnReleaseShell(Shell shell){shell.gameObject.SetActive(false);}
+    private void OnDestroyShell(Shell shell){Destroy(shell.gameObject);}
 
-    private void OnReleaseShell (Shell shell)
-    {
-        shell.gameObject.SetActive(false);
-    }
-
-    private void OnDestroyShell(Shell shell)
-    {
-        Destroy(shell.gameObject);
-    }
 }
