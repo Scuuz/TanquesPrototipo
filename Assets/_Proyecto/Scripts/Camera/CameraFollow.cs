@@ -14,20 +14,41 @@ using UnityEngine;
 public class CameraFollow : MonoBehaviour
 {
     [SerializeField] private Transform _target;
-    [SerializeField] private Vector3 _offset = new Vector3(0f, 18f, -5f);
+
+    [Header("Angulo y distancia de camara")]
+    [Range (30f, 90f)]
+    [SerializeField] private float _pitch = 55f;
+    [SerializeField] private float _distance = 24f;
+
+    [Header("Suavizado")]
     [SerializeField] private float _smoothTime = 0.2f;
 
     private Vector3 _velocity = Vector3.zero;
 
+    private Quaternion ViewRotation => Quaternion.Euler (_pitch, 0f, 0f);
+    private Vector3 Offset => ViewRotation * new Vector3(0f, 0f, -_distance);
     private void Start()
     {
-        if (_target != null) transform.position = _target.position + _offset;
+        SnapToTarget();
     }
     private void LateUpdate()
     {
-        Vector3 desiredPosition = _target.position + _offset;
-        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _velocity, _smoothTime);
+        if (_target == null) return;
 
+        Vector3 desiredPosition = _target.position + Offset;
+        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _velocity, _smoothTime);
+        transform.rotation = ViewRotation;
     }
 
+    private void OnValidate()
+    {
+        SnapToTarget();
+    }
+
+    private void SnapToTarget()
+    {
+        if (_target == null) return;
+        transform.rotation = ViewRotation;
+        transform.position = _target.position + Offset;
+    }
 }
