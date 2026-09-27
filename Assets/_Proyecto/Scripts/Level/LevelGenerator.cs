@@ -31,8 +31,11 @@ public class LevelGenerator : MonoBehaviour
     [Header("Terrain")]
     [SerializeField] private Material _groundMaterial;
     [SerializeField] private float _wallHeight = 5f;
-    [SerializeField] private GameObject[] _borderPrefabs;
-    [SerializeField] private float _borderSpacing = 10f;
+    [SerializeField] private GameObject _cliffPrefab;
+
+    [SerializeField] private float _cliffHalfSize = 51f;
+    
+    [SerializeField] private float _cliffLength = 100f;
 
     [Header("Obstacles")]
     [SerializeField] private GameObject[] _obstaclePrefabs;
@@ -125,7 +128,7 @@ public class LevelGenerator : MonoBehaviour
         CreateWall("Wall_East", new Vector3(width / 2f + 1f, h / 2f, 0f), new Vector3(2f, h, length + 4f));
         CreateWall("Wall_West", new Vector3(-width / 2f - 1f, h / 2f, 0f), new Vector3(2f, h, length + 4f));
 
-        PlaceBorderDecoration (width, length);
+        PlaceCliffs (width, length);
     }
 
     private void CreateWall(string wallName, Vector3 localPosition, Vector3 size)
@@ -138,32 +141,25 @@ public class LevelGenerator : MonoBehaviour
         wall.GetComponent<MeshRenderer>().enabled = false;
     }
 
-    private void PlaceBorderDecoration(float width, float length)
+    private void PlaceCliffs (float width, float length)
     {
-        if (_borderPrefabs == null || _borderPrefabs.Length == 0) return;
+        if (_cliffPrefab == null) return;
 
-        float halfW = width / 2f +4f;
-        float halfL = length / 2f +4f;
+        float halfW = width / 2f + 4f;
+        float halfL = length / 2f + 4f;
 
-        for(float x = -halfW; x <= halfW; x += _borderSpacing)
-        {
-            SpawnBorderPiece(new Vector3(x, 0f, halfL));
-            SpawnBorderPiece(new Vector3(x, 0f, -halfL));
-        }
-        for(float z = -halfL + _borderSpacing; z < halfL; z += _borderSpacing)
-        {
-            SpawnBorderPiece(new Vector3(halfW, 0f, z));
-            SpawnBorderPiece(new Vector3(-halfW, 0f, z));
-        }
+        SpawnCliff(0f, width + 8f, halfL);
+        SpawnCliff(180f, width + 8f, halfL);
+        SpawnCliff(90f, length + 8f, halfW);
+        SpawnCliff(270f, length + 8f, halfW);
     }
 
-    private void SpawnBorderPiece(Vector3 position)
+    private void SpawnCliff (float angle, float sideLength, float distanceFromCenter)
     {
-        GameObject prefab = _borderPrefabs[Random.Range(0, _borderPrefabs.Length)];
-        Quaternion rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-        Instantiate(prefab, position, rotation, _terrainRoot);
+        GameObject cliff = Instantiate (_cliffPrefab, Vector3.zero, Quaternion.Euler(0f, angle, 0f), _terrainRoot);
+        cliff.transform.localScale = new Vector3(sideLength / _cliffLength, 1f, distanceFromCenter / _cliffHalfSize);
     }
-
+    
     private void PlaceKeyPoints(float width, float length)
     {
         _reserved.Clear();
