@@ -1,7 +1,7 @@
 /*
  * CameraFollow.cs
  *
- * Cámara cenital que sigue al tanque.
+ * Cámara vista de pájaro inclinada.
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 24/09/2026
