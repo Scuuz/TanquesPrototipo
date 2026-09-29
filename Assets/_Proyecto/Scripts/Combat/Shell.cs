@@ -58,6 +58,7 @@ public class Shell : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (other.isTrigger) return;
         IDamageable target = other.GetComponentInParent<IDamageable>();
         if (target != null)
         {

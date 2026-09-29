@@ -25,11 +25,14 @@ public class GameManager : MonoBehaviour
     public int TotalTowers => _towers.Length;
     public int RemainingTowers {get; private set;}
     public bool IsGoalOpen => RemainingTowers <= 0;
+    public bool IsLevelCompleted {get; private set;}
 
     public event Action<int, int> OnTowersChanged;
     public event Action OnGoalOpened;
+    public event Action OnLevelCompleted;
 
     private Transform _player;
+    private Health _playerHealth;
 
     private void Awake()
     {
@@ -44,7 +47,11 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null) _player = playerObject.transform;
+        if (playerObject != null) 
+        {
+            _player = playerObject.transform;
+            _playerHealth = playerObject.GetComponent<Health>();
+        }
 
         RemainingTowers = 0;
         foreach (RadarTower tower in _towers)
@@ -76,7 +83,7 @@ public class GameManager : MonoBehaviour
 
     private bool IsPlayerDetectedByRadar()
     {
-        if (_player == null) return false;
+        if (_player == null || (_playerHealth != null && _playerHealth.IsDead)) return false;
 
         foreach (RadarTower tower in _towers)
         {
@@ -103,5 +110,15 @@ public class GameManager : MonoBehaviour
         }
         OnGoalOpened?.Invoke();
         Debug.Log("[GameManager] Todas las torres destruidas. La meta está abierta.");
+    }
+
+    public void CompleteLevel()
+    {
+        if (IsLevelCompleted) return;
+
+        IsLevelCompleted = true;
+        OnLevelCompleted?.Invoke();
+        Debug.Log("[GameManager] Nivel Completado");
+        Time.timeScale = 0f;
     }
 }

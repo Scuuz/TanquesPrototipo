@@ -19,6 +19,7 @@ public class Health : MonoBehaviour, IDamageable
     public float CurrentHealth {get; private set;}
     public float MaxHealth => _maxHealth;
     public bool IsDead {get; private set;}
+    public bool IsInvulnerable{get; set;}
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDied;
@@ -37,7 +38,7 @@ public class Health : MonoBehaviour, IDamageable
 
     public void TakeDamage (float amount)
     {
-        if (IsDead) return;
+        if (IsDead || IsInvulnerable) return;
 
         CurrentHealth = Mathf.Max(CurrentHealth - amount, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
