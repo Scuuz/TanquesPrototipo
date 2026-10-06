@@ -84,12 +84,14 @@ public class PlayerRespawn : MonoBehaviour
     {
         if (_model != null) _model.SetActive(alive);
         _collider.enabled = alive;
-        _rb.isKinematic = !alive;
+        
         if (!alive)
         {
             _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
         }
+
+        _rb.isKinematic = !alive;
 
         foreach (Behaviour behaviour in _disableWhileDead)
         {

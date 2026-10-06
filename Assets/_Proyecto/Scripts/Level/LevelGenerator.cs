@@ -221,11 +221,21 @@ public class LevelGenerator : MonoBehaviour
 
     private bool IsLevelValid()
     {
-        if (!HasPath(SpawnPoint, GoalPoint)) return false;
+        Vector3 goalEntrance = GoalPoint + Vector3.back * (_goalSafeRadius * 0.75f);
+
+        if (!HasPath(SpawnPoint, goalEntrance)) 
+        {
+            Debug.LogWarning("[LevelGenerator] Sin camino hasta la entrada de la meta");
+            return false;
+        }
 
         foreach (Transform tower in _towers)
         {
-            if (tower != null && !HasPath(SpawnPoint, tower.position)) return false;
+            if (tower != null && !HasPath(SpawnPoint, tower.position)) 
+            {
+                Debug.LogWarning($"[LevelGenerator] Sin camino hasta {tower.name}");
+                return false;
+            }
         }
         return true;
     }
