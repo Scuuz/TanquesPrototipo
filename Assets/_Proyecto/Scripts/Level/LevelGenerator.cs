@@ -49,7 +49,7 @@ public class LevelGenerator : MonoBehaviour
     [Header("Actors (reubicacion objetos en la escena)")]
     [SerializeField] private Transform _player;
     [SerializeField] private Transform _player2;
-    [SerializeField] private float _coopSpawnOffset = 3f;       // separación entre los dos jugadores
+    [SerializeField] private float _coopSpawnOffset = 3f;
     [SerializeField] private bool _testCoopInEditor = false;
     [SerializeField] private Transform _goalArea;
     [SerializeField] private Transform[] _towers;
@@ -290,6 +290,7 @@ public class LevelGenerator : MonoBehaviour
         foreach (NavMeshAgent enemy in _enemies)
         {
             if (enemy == null || !enemy.gameObject.activeSelf) continue;
+            enemy.enabled = true;
             for (int i = 0; i < 30; i++)
             {
                 Vector3 candidate = new Vector3(Random.Range(-width / 2f + 5f, width / 2f - 5f), 0f, Random.Range(-length * 0.2f, length * 0.45f));

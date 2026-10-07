@@ -24,9 +24,22 @@ public class TankMovement : MonoBehaviour
     [SerializeField] private float _turnSpeed = 180f;
     [SerializeField] private float _stickTurnSpeed = 540f;
 
+    [Header("Boost")]
+    [SerializeField] private float _boostMultiplier = 1.8f;
+    [SerializeField] private float _boostDuration = 1.2f;
+    [SerializeField] private float _boostCooldown = 5f;
+
+    public bool IsBoosting => Time.time < _boostEndTime;
+
+    public float BoostReady01 => Mathf.Clamp01(1f - (_nextBoostTime - Time.time) / Mathf.Max(_boostCooldown, 0.01f));
+
+    private float CurrentSpeed => IsBoosting ? _moveSpeed * _boostMultiplier : _moveSpeed;
+
     private Rigidbody _rb;
     private Vector2 _input;
     private CameraFollow _cameraFollow;
+    private float _boostEndTime;
+    private float _nextBoostTime;
 
     private void Awake()
     {
@@ -42,6 +55,12 @@ public class TankMovement : MonoBehaviour
     private void Update()
     {
         _input = _controlScheme == ControlScheme.Gamepad ? ReadGamepad() : ReadKeyboard();
+
+        if (BoostPressed() && Time.time >= _nextBoostTime)
+        {
+            _boostEndTime = Time.time + _boostDuration;
+            _nextBoostTime = Time.time + _boostCooldown;
+        }
     }
 
     private Vector2 ReadKeyboard()
@@ -65,6 +84,19 @@ public class TankMovement : MonoBehaviour
         return pad.leftStick.ReadValue();
     }
 
+    private bool BoostPressed()
+    {
+        if (_controlScheme == ControlScheme.Gamepad)
+        {
+            Gamepad pad = Gamepad.current;
+            if (pad == null) return false;
+
+            return pad.leftTrigger.wasPressedThisFrame || pad.leftShoulder.wasPressedThisFrame;
+        }
+
+        return Input.GetKeyDown(KeyCode.LeftShift);
+    }
+
     private void FixedUpdate()
     {
         if (_controlScheme == ControlScheme.Gamepad)
@@ -80,7 +112,7 @@ public class TankMovement : MonoBehaviour
 
     private void Move()
     {
-        float distance = _input.y * _moveSpeed * Time.fixedDeltaTime;
+        float distance = _input.y * CurrentSpeed * Time.fixedDeltaTime;
         Vector3 target = _rb.position + transform.forward * distance;
 
         if (CanMoveTo(target)) _rb.MovePosition(target);
@@ -98,7 +130,7 @@ public class TankMovement : MonoBehaviour
         Vector3 direction = new Vector3(_input.x, 0f, _input.y);
         if (direction.sqrMagnitude < 0.01f) return;
 
-        Vector3 offset = Vector3.ClampMagnitude(direction, 1f) * _moveSpeed * Time.fixedDeltaTime;
+        Vector3 offset = Vector3.ClampMagnitude(direction, 1f) * CurrentSpeed * Time.fixedDeltaTime;
         Vector3 target = _rb.position + offset;
         if (CanMoveTo(target)) _rb.MovePosition(target);
 

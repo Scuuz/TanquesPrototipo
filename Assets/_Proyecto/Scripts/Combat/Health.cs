@@ -16,13 +16,17 @@ public class Health : MonoBehaviour, IDamageable
 {
     [SerializeField] private float _maxHealth = 100f;
 
-    public float CurrentHealth {get; private set;}
+    public float CurrentHealth { get; private set; }
     public float MaxHealth => _maxHealth;
-    public bool IsDead {get; private set;}
-    public bool IsInvulnerable{get; set;}
+    public bool IsDead { get; private set; }
+    public bool IsInvulnerable { get; set; }
+    public bool IsShielded => Time.time < _shieldEndTime;
+    public bool IsProtected => IsInvulnerable || IsShielded;
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDied;
+
+    private float _shieldEndTime;
 
     private void Awake()
     {
@@ -36,9 +40,9 @@ public class Health : MonoBehaviour, IDamageable
         OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
     }
 
-    public void TakeDamage (float amount)
+    public void TakeDamage(float amount)
     {
-        if (IsDead || IsInvulnerable) return;
+        if (IsDead || IsProtected) return;
 
         CurrentHealth = Mathf.Max(CurrentHealth - amount, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
@@ -48,5 +52,18 @@ public class Health : MonoBehaviour, IDamageable
             IsDead = true;
             OnDied?.Invoke();
         }
+    }
+
+    public void Heal(float amount)
+    {
+        if (IsDead) return;
+
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, _maxHealth);
+        OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
+    }
+
+    public void AddShield(float seconds)
+    {
+        _shieldEndTime = Mathf.Max(_shieldEndTime, Time.time + seconds);
     }
 }
