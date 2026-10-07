@@ -68,17 +68,19 @@ public class EnemyAI : MonoBehaviour
 
     private void Start()
     {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null) _player = playerObject.transform;
-        else Debug.LogError($"{name}: no hay ningún objeto con el tag de 'Player' en la escena.");
-
         GeneratePatrolPoints();
         GoToNextPatrolPoint();
     }
 
     private void Update()
     {
-        if (_player == null) return;
+        _player = PlayerRegistry.GetClosestAlive(transform.position);
+        if (_player == null)
+        {
+            if (_state != EnemyState.Patrol) ChangeState(EnemyState.Patrol);
+            MoveAlongPatrol();
+            return;
+        }
 
         switch (_state)
         {
@@ -117,6 +119,11 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
+        MoveAlongPatrol();
+    }
+
+    private void MoveAlongPatrol()
+    {
         bool arrived = !_agent.pathPending && _agent.remainingDistance <= _waypointTolerance;
         bool unreachable = _agent.pathStatus == NavMeshPathStatus.PathInvalid;
         if (arrived || unreachable)

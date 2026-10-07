@@ -1,7 +1,7 @@
 /*
  * LevelGenerator.cs
  *
- * Se genera el nivel en cada partida(generación procedural): terreno de tamaño aleatorio, obstaculos, spawn, meta. Se valida que existan caminos para el NavMesh
+ * Se genera el nivel en cada partida(generación procedural) segun la dificultad y la cantidad de jugadores. Tamaño de mapa, obstaculos, spawn, meta, torres y enemigos. Valida si existen caminos en el NavMesh.
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 26/09/2026
@@ -48,6 +48,9 @@ public class LevelGenerator : MonoBehaviour
 
     [Header("Actors (reubicacion objetos en la escena)")]
     [SerializeField] private Transform _player;
+    [SerializeField] private Transform _player2;
+    [SerializeField] private float _coopSpawnOffset = 3f;       // separación entre los dos jugadores
+    [SerializeField] private bool _testCoopInEditor = false;
     [SerializeField] private Transform _goalArea;
     [SerializeField] private Transform[] _towers;
     [SerializeField] private NavMeshAgent[] _enemies;
@@ -76,6 +79,12 @@ public class LevelGenerator : MonoBehaviour
         if (_useRandomSeed) _seed = System.Environment.TickCount;
         Random.InitState(_seed);
         Debug.Log($"[LevelGenerator] Seed: {_seed}");
+
+        #if UNITY_EDITOR
+        if (_testCoopInEditor) GameSession.PlayerCount = 2;
+        #endif
+        
+        if (_player2 != null) _player2.gameObject.SetActive(GameSession.PlayerCount > 1);
 
         ApplyDifficulty();
         Generate();
@@ -186,7 +195,11 @@ public class LevelGenerator : MonoBehaviour
     {
         _reserved.Clear();
 
-        if (_player != null) _player.SetPositionAndRotation(SpawnPoint, Quaternion.identity);
+        bool isCoop = _player2 != null && _player2.gameObject.activeSelf;
+        Vector3 offset = isCoop ? Vector3.right * _coopSpawnOffset : Vector3.zero;
+
+        if (_player != null) _player.SetPositionAndRotation(SpawnPoint - offset, Quaternion.identity);
+        if (isCoop) _player2.SetPositionAndRotation(SpawnPoint + offset, Quaternion.identity);
         Reserve (SpawnPoint, _spawnSafeRadius);
 
         if (_goalArea != null) _goalArea.position = GoalPoint;

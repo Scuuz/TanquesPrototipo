@@ -1,7 +1,7 @@
 /*
  * GameManager.cs
  *
- * Se utiliza Singleton. Se cuenta las torres destruidas, alerta a los enemigos y abre la meta al caer todas las torres.
+ * Se utiliza Singleton. Aplica la dificultad, cuenta las torres y respawns, alerta a los enemigos, se abre la meta y defina victoria o derrota
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 29/09/2026
@@ -41,8 +41,6 @@ public class GameManager : MonoBehaviour
     public event Action OnGameOver;
 
     private readonly List<RadarTower> _activeTowers = new List<RadarTower>();
-    private Transform _player;
-    private Health _playerHealth;
 
     private int[] _respawnsLeft;
     private int _sharedRespawnsLeft;
@@ -85,13 +83,6 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null) 
-        {
-            _player = playerObject.transform;
-            _playerHealth = playerObject.GetComponent<Health>();
-        }
-
         RemainingTowers = 0;
         foreach (RadarTower tower in _towers)
         {
@@ -126,11 +117,14 @@ public class GameManager : MonoBehaviour
     // TORRES
     private bool IsPlayerDetectedByRadar()
     {
-        if (_player == null || (_playerHealth != null && _playerHealth.IsDead)) return false;
-
-        foreach (RadarTower tower in _activeTowers)
+        foreach (PlayerRespawn player in PlayerRegistry.Players)
         {
-            if (tower != null && tower.IsDetecting(_player.position)) return true;
+            if (player == null || !player.IsAlive) continue;
+
+            foreach (RadarTower tower in _activeTowers)
+            {
+                if (tower != null && tower.IsDetecting(player.transform.position)) return true;
+            }
         }
         return false;
     }

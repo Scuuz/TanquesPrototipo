@@ -1,7 +1,7 @@
 /*
  * PlayerRespawn.cs
  *
- * Descripción breve de qué hace este script.
+ * Muerte y reaparicion del player. Tiene una invulnerabilidad temporal al respawnear. Se registra en PlayerRegistry.
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 29/09/2026
@@ -25,6 +25,7 @@ public class PlayerRespawn : MonoBehaviour
     [SerializeField] private Behaviour[] _disableWhileDead;
 
     public int PlayerIndex => _playerIndex;
+    public bool IsAlive => _health != null && !_health.IsDead;
 
     public event Action OnPlayerEliminated;
     public event Action OnPlayerDied;
@@ -52,11 +53,13 @@ public class PlayerRespawn : MonoBehaviour
     private void OnEnable()
     {
         _health.OnDied += HandleDied;
+        PlayerRegistry.Register(this);
     }
 
     private void OnDisable()
     {
         _health.OnDied -= HandleDied;
+        PlayerRegistry.Unregister(this);
     }
 
     private void HandleDied()

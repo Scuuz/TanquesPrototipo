@@ -20,14 +20,6 @@ public class EnemyRespawner : MonoBehaviour
     [SerializeField] private float _spawnRadius = 10f;            // distancia máxima a la torre
     [SerializeField] private float _minDistanceToPlayer = 15f;    // para que no aparezcan encima del jugador
 
-    private Transform _player;
-
-    private void Start()
-    {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null) _player = playerObject.transform;
-    }
-
     private void OnEnable()
     {
         foreach (EnemyAI enemy in _enemies)
@@ -84,7 +76,7 @@ public class EnemyRespawner : MonoBehaviour
             Vector3 candidate = tower.transform.position + new Vector3(circle.x, 0f, circle.y);
 
             if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 4f, NavMesh.AllAreas)) continue;
-            if (_player != null && Vector3.Distance(hit.position, _player.position) < _minDistanceToPlayer) continue;
+            if (PlayerRegistry.AnyAliveWithin(hit.position, _minDistanceToPlayer)) continue;
 
             position = hit.position;
             return true;

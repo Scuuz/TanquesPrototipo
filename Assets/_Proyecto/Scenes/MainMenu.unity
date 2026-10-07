@@ -2220,7 +2220,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "W A S D / Flechas: mover y girar\nEspacio / Clic izquierdo: disparar\nObjetivo:
+  m_text: "JUGADOR 1: W/S avanzar - A/D rotar - Mouse apuntar - Clic o Espacio disparar\nJUGADOR
+    2 (joystick): Stick izq. mover - Stick der. apuntar - Gatillo der. disparar\nObjetivo:
     destru\xED las 3 torres de radar para desactivar el escudo\ny lleg\xE1 al helipuerto.
     \xA1Cuidado: los radares alertan a los enemigos!"
   m_isRightToLeft: 0
@@ -2789,7 +2790,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 0
+  m_Interactable: 1
   m_TargetGraphic: {fileID: 1895743459}
   m_OnClick:
     m_PersistentCalls:

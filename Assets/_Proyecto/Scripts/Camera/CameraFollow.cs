@@ -1,54 +1,134 @@
 /*
  * CameraFollow.cs
  *
- * Cámara vista de pájaro inclinada.
+ * Cámara vista de pájaro inclinada. Sigue el punto medio entre los jugadores vivos y se aleja al separarse
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 24/09/2026
+ * Modificación: 06/10/2026
  * Proyecto: TanquesPrototipo - Programación 2
  */
 
 
 using UnityEngine;
 
+[RequireComponent(typeof(Camera))]
 public class CameraFollow : MonoBehaviour
 {
     [SerializeField] private Transform _target;
 
     [Header("Angulo y distancia de camara")]
-    [Range (30f, 90f)]
+    [Range(30f, 90f)]
     [SerializeField] private float _pitch = 55f;
     [SerializeField] private float _distance = 24f;
+
+    [Header("Zoom cooperativo")]
+    [SerializeField] private float _maxDistance = 60f;
+    [SerializeField] private float _emergencyDistance = 300f;
+    [Range(0.5f, 0.95f)]
+    [SerializeField] private float _screenMargin = 0.8f;
 
     [Header("Suavizado")]
     [SerializeField] private float _smoothTime = 0.2f;
 
-    private Vector3 _velocity = Vector3.zero;
+    public bool IsStretched { get; private set; }
 
-    private Quaternion ViewRotation => Quaternion.Euler (_pitch, 0f, 0f);
-    private Vector3 Offset => ViewRotation * new Vector3(0f, 0f, -_distance);
+    private Camera _camera;
+    private Vector3 _velocity = Vector3.zero;
+    private float _zoomVelocity;
+    private Vector3 _focus;
+    private float _currentDistance;
+
+    private Quaternion ViewRotation => Quaternion.Euler(_pitch, 0f, 0f);
+
+    private void Awake()
+    {
+        _camera = GetComponent<Camera>();
+        _currentDistance = _distance;
+    }
+
     private void Start()
     {
-        SnapToTarget();
+        if (_target != null) _focus = _target.position;
+
+        _currentDistance = UpdateFocus();
+        transform.rotation = ViewRotation;
+        transform.position = _focus + ViewRotation * new Vector3(0f, 0f, -_currentDistance);
     }
+
     private void LateUpdate()
     {
-        if (_target == null) return;
+        float targetDistance = UpdateFocus();
+        _currentDistance = Mathf.SmoothDamp(_currentDistance, targetDistance, ref _zoomVelocity, _smoothTime);
 
-        Vector3 desiredPosition = _target.position + Offset;
+        Vector3 desiredPosition = _focus + ViewRotation * new Vector3(0f, 0f, -_currentDistance);
         transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _velocity, _smoothTime);
         transform.rotation = ViewRotation;
     }
 
-    private void OnValidate()
+    private float UpdateFocus()
     {
-        SnapToTarget();
+        bool found = false;
+        Bounds bounds = new Bounds();
+
+        foreach (PlayerRespawn player in PlayerRegistry.Players)
+        {
+            if (player == null || !player.IsAlive) continue;
+
+            if (!found)
+            {
+                bounds = new Bounds(player.transform.position, Vector3.zero);
+                found = true;
+            }
+            else
+            {
+                bounds.Encapsulate(player.transform.position);
+            }
+        }
+
+        if (!found)
+        {
+            IsStretched = false;
+            return _currentDistance;
+        }
+
+        _focus = bounds.center;
+
+        float tanVertical = Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * _screenMargin;
+        float tanHorizontal = tanVertical * _camera.aspect;
+        Quaternion worldToView = Quaternion.Inverse(ViewRotation);
+
+        float needed = _distance;
+        foreach (PlayerRespawn player in PlayerRegistry.Players)
+        {
+            if (player == null || !player.IsAlive) continue;
+
+            Vector3 local = worldToView * (player.transform.position - _focus);
+
+            float forWidth = Mathf.Abs(local.x) / tanHorizontal - local.z;
+            float forHeight = Mathf.Abs(local.y) / tanVertical - local.z;
+            needed = Mathf.Max(needed, forWidth, forHeight);
+        }
+
+        IsStretched = needed > _maxDistance;
+        return Mathf.Min(needed, _emergencyDistance);
     }
 
-    private void SnapToTarget()
+    public bool AllowsMove(Vector3 from, Vector3 to)
     {
-        if (_target == null) return;
+        if (!IsStretched) return true;
+
+        Vector3 currentOffset = from - _focus;
+        Vector3 nextOffset = to - _focus;
+        currentOffset.y = 0f;
+        nextOffset.y = 0f;
+        return nextOffset.sqrMagnitude <= currentOffset.sqrMagnitude;
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying || _target == null) return;
         transform.rotation = ViewRotation;
-        transform.position = _target.position + Offset;
+        transform.position = _target.position + ViewRotation * new Vector3(0f, 0f, -_distance);
     }
 }

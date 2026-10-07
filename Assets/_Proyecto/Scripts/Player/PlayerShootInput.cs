@@ -1,7 +1,7 @@
 /*
  * PlayerShootInput.cs
  *
- * Se usa el input viejo y le pide a TankShooting que dispare cuando se efectua la acción.
+ * Lee el disparo tanto del player 1 como del 2. Le pide a TankShooting que dispare
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 26/09/2026
@@ -11,11 +11,13 @@
 
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(TankShooting))]
-
 public class PlayerShootInput : MonoBehaviour
 {
+    [SerializeField] private ControlScheme _controlScheme = ControlScheme.KeyboardMouse;
+
     private TankShooting _shooting;
 
     private void Awake()
@@ -25,9 +27,24 @@ public class PlayerShootInput : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+        if (FirePressed())
         {
             _shooting.TryFire();
         }
+    }
+
+    private bool FirePressed()
+    {
+        if (_controlScheme == ControlScheme.Gamepad)
+        {
+            Gamepad pad = Gamepad.current;
+            if (pad == null) return false;
+
+            return pad.rightTrigger.wasPressedThisFrame
+                || pad.rightShoulder.wasPressedThisFrame
+                || pad.buttonSouth.wasPressedThisFrame;
+        }
+
+        return Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space);
     }
 }

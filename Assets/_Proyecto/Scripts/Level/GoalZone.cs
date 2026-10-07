@@ -1,7 +1,7 @@
 /*
  * GoalZone.cs
  *
- * Descripción breve de qué hace este script.
+ * Zona de meta. Avisa al GameManager que se completó el nivel.
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 29/09/2026

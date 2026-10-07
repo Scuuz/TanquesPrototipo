@@ -1,7 +1,7 @@
 /*
  * TurretAim.cs
  *
- * Rotacion de la torreta del tanque hacia la posicion del mouse
+ * Rotacion de la torreta del tanque hacia la posicion del mouse(Player 1) o stick derecho(Player 2)
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 06/10/2026
@@ -10,20 +10,24 @@
 
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class TurretAim : MonoBehaviour
 {
+    [Header("Input")]
+    [SerializeField] private ControlScheme _controlScheme = ControlScheme.KeyboardMouse;
+
     [Header("Referencias")]
-    [SerializeField] private Transform _turretPivot;    // objeto vacío que contiene al FirePoint
-    [SerializeField] private Transform _turretVisual;   // malla de la torreta (Model/TankRenderers/TankTurret)
+    [SerializeField] private Transform _turretPivot;
+    [SerializeField] private Transform _turretVisual;
 
     [Header("Aim")]
-    [SerializeField] private float _turnSpeed = 360f;   // grados por segundo
-    [SerializeField] private float _aimHeight = 1f;     // altura del plano donde "apoya" el mouse
+    [SerializeField] private float _turnSpeed = 360f;
+    [SerializeField] private float _aimHeight = 1f;
 
     private Camera _camera;
-    private Quaternion _visualOffset;   // rotación original de la malla respecto del tanque
-    private float _yaw;                 // ángulo actual de la torreta, en el mundo
+    private Quaternion _visualOffset;
+    private float _yaw;
 
     private void Awake()
     {
@@ -36,15 +40,19 @@ public class TurretAim : MonoBehaviour
 
     private void OnEnable()
     {
-        // Al aparecer o reaparecer, la torreta arranca mirando hacia adelante
         _yaw = transform.eulerAngles.y;
     }
 
     private void LateUpdate()
     {
-        if (Time.timeScale == 0f) return;   // juego en pausa (victoria / game over)
+        if (Time.timeScale == 0f) return;
 
-        if (TryGetMouseYaw(out float targetYaw))
+        float targetYaw;
+        bool hasTarget = _controlScheme == ControlScheme.Gamepad
+            ? TryGetGamepadYaw(out targetYaw)
+            : TryGetMouseYaw(out targetYaw);
+
+        if (hasTarget)
         {
             _yaw = Mathf.MoveTowardsAngle(_yaw, targetYaw, _turnSpeed * Time.deltaTime);
         }
@@ -68,6 +76,19 @@ public class TurretAim : MonoBehaviour
         if (direction.sqrMagnitude < 0.25f) return false;
 
         yaw = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+        return true;
+    }
+
+    private bool TryGetGamepadYaw(out float yaw)
+    {
+        yaw = 0f;
+        Gamepad pad = Gamepad.current;
+        if (pad == null) return false;
+
+        Vector2 stick = pad.rightStick.ReadValue();
+        if (stick.sqrMagnitude < 0.09f) return false;
+
+        yaw = Mathf.Atan2(stick.x, stick.y) * Mathf.Rad2Deg;
         return true;
     }
 }
