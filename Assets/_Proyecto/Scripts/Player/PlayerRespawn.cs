@@ -17,12 +17,16 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerRespawn : MonoBehaviour
 {
+    [SerializeField] private int _playerIndex = 0;
     [SerializeField] private float _respawnDelay = 2.5f;
     [SerializeField] private float _invulnerabilityTime = 2f;
     [SerializeField] private EffectPool _deathEffectPool;
     [SerializeField] private GameObject _model;
     [SerializeField] private Behaviour[] _disableWhileDead;
 
+    public int PlayerIndex => _playerIndex;
+
+    public event Action OnPlayerEliminated;
     public event Action OnPlayerDied;
     public event Action OnPlayerRespawned;
 
@@ -63,7 +67,17 @@ public class PlayerRespawn : MonoBehaviour
     private IEnumerator RespawnRoutine()
     {
         if (_deathEffectPool != null) _deathEffectPool.Play(transform.position);
-        SetAlive(false);
+        SetAlive (false);
+
+        bool canRespawn = GameManager.Instance.TryUseRespawn(_playerIndex);
+        if (!canRespawn)
+        {
+            OnPlayerEliminated?.Invoke();
+            yield return new WaitForSeconds(1.5f);
+            GameManager.Instance.NotifyPlayerEliminated();
+            yield break;
+        }
+
         OnPlayerDied?.Invoke();
 
         yield return new WaitForSeconds(_respawnDelay);

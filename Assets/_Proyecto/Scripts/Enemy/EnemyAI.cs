@@ -5,6 +5,7 @@
  *
  * Autor: Pablo G. Ruiz Orozco (Scuuz)
  * Fecha: 27/09/2026
+ * Modificación: 05/10/2026
  * Proyecto: TanquesPrototipo - Programación 2
  */
 
@@ -12,11 +13,11 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public enum EnemyState {Patrol, Chase, Attack}
+public enum EnemyState { Patrol, Chase, Attack }
 
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(TankShooting))]
-
+[RequireComponent(typeof(Health))]
 public class EnemyAI : MonoBehaviour
 {
     [Header("Patrol")]
@@ -31,12 +32,18 @@ public class EnemyAI : MonoBehaviour
     [Header("Aim")]
     [SerializeField] private float _aimTurnSpeed = 120f;
     [SerializeField] private float _aimTolerance = 8f;
+    [SerializeField] private float _shotRadius = 0.35f;   // radio aproximado del proyectil
 
-    public bool IsAlerted {get; set;}
+    public bool IsAlerted { get; set; }
     public EnemyState CurrentState => _state;
+
+    // Avisa que este enemigo murió (lo escucha EnemyRespawner)
+    public event System.Action<EnemyAI> Died;
 
     private NavMeshAgent _agent;
     private TankShooting _shooting;
+    private Health _health;
+    private TeamMember _teamMember;
     private Transform _player;
     private EnemyState _state = EnemyState.Patrol;
     private Vector3[] _patrolPoints;
@@ -46,6 +53,17 @@ public class EnemyAI : MonoBehaviour
     {
         _agent = GetComponent<NavMeshAgent>();
         _shooting = GetComponent<TankShooting>();
+        _health = GetComponent<Health>();
+        _teamMember = GetComponent<TeamMember>();
+
+        // Se suscribe en Awake y no en OnEnable: al morir el objeto se desactiva,
+        // y la suscripción tiene que seguir viva para la próxima vez.
+        _health.OnDied += HandleDied;
+    }
+
+    private void OnDestroy()
+    {
+        if (_health != null) _health.OnDied -= HandleDied;
     }
 
     private void Start()
@@ -62,12 +80,33 @@ public class EnemyAI : MonoBehaviour
     {
         if (_player == null) return;
 
-        switch(_state)
+        switch (_state)
         {
             case EnemyState.Patrol: UpdatePatrol(); break;
             case EnemyState.Chase: UpdateChase(); break;
             case EnemyState.Attack: UpdateAttack(); break;
         }
+    }
+
+    private void HandleDied()
+    {
+        Died?.Invoke(this);
+    }
+
+    // Lo llama EnemyRespawner para volver a poner en juego a este enemigo
+    public void Respawn(Vector3 position)
+    {
+        transform.position = position;
+        gameObject.SetActive(true);
+        _agent.Warp(position);
+        _health.ResetHealth();
+
+        IsAlerted = false;
+        _state = EnemyState.Patrol;
+        _agent.isStopped = false;
+        _patrolIndex = 0;
+        GeneratePatrolPoints();
+        GoToNextPatrolPoint();
     }
 
     private void UpdatePatrol()
@@ -107,6 +146,8 @@ public class EnemyAI : MonoBehaviour
 
     private void UpdateAttack()
     {
+        // Si algo tapa el tiro (por ejemplo una torre), vuelve a perseguir:
+        // el NavMeshAgent rodea el obstáculo hasta tener tiro limpio.
         if (DistanceToPlayer() > _attackRange * 1.2f || !HasLineOfSight())
         {
             ChangeState(EnemyState.Chase);
@@ -161,16 +202,35 @@ public class EnemyAI : MonoBehaviour
         return DistanceToPlayer() <= _detectionRange && HasLineOfSight();
     }
 
+    // ¿Una bala disparada ahora llegaría al player?
     private bool HasLineOfSight()
     {
         Vector3 origin = _shooting.FirePoint.position;
         Vector3 toPlayer = (_player.position + Vector3.up) - origin;
 
-        if (Physics.Raycast(origin, toPlayer.normalized, out RaycastHit hit, toPlayer.magnitude + 1f, ~0, QueryTriggerInteraction.Ignore))
+        RaycastHit[] hits = Physics.SphereCastAll(origin, _shotRadius, toPlayer.normalized, toPlayer.magnitude + 1f, ~0, QueryTriggerInteraction.Ignore);
+
+        // Busca el obstáculo más cercano, salteando lo que la bala atraviesa
+        Transform closest = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (RaycastHit hit in hits)
         {
-            return hit.transform == _player || hit.transform.IsChildOf(_player);
+            Transform hitTransform = hit.collider.transform;
+            if (hitTransform == transform || hitTransform.IsChildOf(transform)) continue;   // yo mismo
+
+            TeamMember member = hit.collider.GetComponentInParent<TeamMember>();
+            bool isAlly = member != null && _teamMember != null && member.Team == _teamMember.Team;
+            if (isAlly && member.AlliedShootsPassThrough) continue;                          // otro tanque enemigo
+
+            if (hit.distance < closestDistance)
+            {
+                closestDistance = hit.distance;
+                closest = hitTransform;
+            }
         }
-        return false;
+
+        return closest != null && (closest == _player || closest.IsChildOf(_player));
     }
 
     private void AimAtPlayer()

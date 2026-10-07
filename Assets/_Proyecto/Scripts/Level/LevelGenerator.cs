@@ -20,6 +20,9 @@ using UnityEngine.AI;
 
 public class LevelGenerator : MonoBehaviour
 {
+    [Header("Difficulty")]
+    [SerializeField] private DifficultyConfig _defaultDifficulty;
+
     [Header("Seed")]
     [SerializeField] private bool _useRandomSeed = true;
     [SerializeField] private int _seed = 12345;
@@ -64,6 +67,7 @@ public class LevelGenerator : MonoBehaviour
     private Transform _obstacleRoot;
     private readonly List<(Vector3 position, float radius)> _reserved = new List<(Vector3, float)>();
     private int _keyReservedCount;
+    private float _sizeMultiplier = 1f;
 
     private void Awake()
     {
@@ -73,13 +77,31 @@ public class LevelGenerator : MonoBehaviour
         Random.InitState(_seed);
         Debug.Log($"[LevelGenerator] Seed: {_seed}");
 
+        ApplyDifficulty();
         Generate();
+    }
+
+    private void ApplyDifficulty()
+    {
+        DifficultyConfig difficulty = GameSession.GetDifficulty(_defaultDifficulty);
+        if (difficulty == null) return;
+
+        _sizeMultiplier = difficulty.MapSizeMultiplier;
+
+        for (int i = 0; i < _towers.Length; i++)
+        {
+            if (_towers[i] != null) _towers[i].gameObject.SetActive(i < difficulty.TowerCount);
+        }
+        for (int i = 0; i < _enemies.Length; i++)
+        {
+            if (_enemies[i] != null) _enemies[i].gameObject.SetActive(i < difficulty.EnemyCount);
+        }
     }
 
     private void Generate()
     {
-        float width = Random.Range(_minSize.x, _maxSize.x);
-        float length = Random.Range(_minSize.y, _maxSize.y);
+        float width = Random.Range(_minSize.x, _maxSize.x) * _sizeMultiplier;
+        float length = Random.Range(_minSize.y, _maxSize.y) * _sizeMultiplier;
         MapSize = new Vector2(width, length);
         SpawnPoint = new Vector3(0f, 0f, -length / 2f + 8f);
         GoalPoint = new Vector3(0f, 0f, length / 2f -8f);
@@ -173,7 +195,7 @@ public class LevelGenerator : MonoBehaviour
         float towerRadius = _minTowerDistance / 2f;
         foreach (Transform tower in _towers)
         {
-            if (tower == null) continue;
+            if (tower == null || !tower.gameObject.activeSelf) continue;
             if (TryFindFreePosition(width, length, towerRadius, -0.25f, 0.35f, out Vector3 position))
             {
                 tower.position = position;
@@ -194,7 +216,8 @@ public class LevelGenerator : MonoBehaviour
         if (_obstaclePrefabs == null || _obstaclePrefabs.Length == 0) return;
 
         float radius = _obstacleSpacing / 2f;
-        for (int i = 0; i < _obstacleCount; i++)
+        int count = Mathf.RoundToInt(_obstacleCount * _sizeMultiplier * _sizeMultiplier);
+        for (int i = 0; i < count; i++)
         {
             if (!TryFindFreePosition(width, length, radius, -0.45f, 0.45f, out Vector3 position)) continue;
 
@@ -231,7 +254,7 @@ public class LevelGenerator : MonoBehaviour
 
         foreach (Transform tower in _towers)
         {
-            if (tower != null && !HasPath(SpawnPoint, tower.position)) 
+            if (tower != null && tower.gameObject.activeSelf && !HasPath(SpawnPoint, tower.position)) 
             {
                 Debug.LogWarning($"[LevelGenerator] Sin camino hasta {tower.name}");
                 return false;
@@ -253,7 +276,7 @@ public class LevelGenerator : MonoBehaviour
     {
         foreach (NavMeshAgent enemy in _enemies)
         {
-            if (enemy == null) continue;
+            if (enemy == null || !enemy.gameObject.activeSelf) continue;
             for (int i = 0; i < 30; i++)
             {
                 Vector3 candidate = new Vector3(Random.Range(-width / 2f + 5f, width / 2f - 5f), 0f, Random.Range(-length * 0.2f, length * 0.45f));

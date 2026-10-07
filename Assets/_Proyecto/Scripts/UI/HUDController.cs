@@ -23,27 +23,36 @@ public class HUDController : MonoBehaviour
     [SerializeField] private Slider _healthBar;
     [SerializeField] private TMP_Text _towersText;
     [SerializeField] private TMP_Text _objectiveText;
+    [SerializeField] private TMP_Text _respawnsText;
     [SerializeField] private GameObject _respawnMessage;
 
-    [Header("Victoria")]
+    [Header("Paneles")]
     [SerializeField] private GameObject _victoryPanel;
+    [SerializeField] private GameObject _gameOverPanel;
+
+    private GameManager _gameManager;
 
     private void Start()
     {
+        _gameManager = GameManager.Instance;
+
         _playerHealth.OnHealthChanged += UpdateHealth;
         _playerRespawn.OnPlayerDied += ShowRespawnMessage;
         _playerRespawn.OnPlayerRespawned += HideRespawnMessage;
 
-        GameManager gameManager = GameManager.Instance;
-        gameManager.OnTowersChanged += UpdateTowers;
-        gameManager.OnGoalOpened += ShowGoalOpen;
-        gameManager.OnLevelCompleted += ShowVictory;
+        _gameManager.OnTowersChanged += UpdateTowers;
+        _gameManager.OnGoalOpened += ShowGoalOpen;
+        _gameManager.OnLevelCompleted += ShowVictory;
+        _gameManager.OnRespawnsChanged += UpdateRespawns;
+        _gameManager.OnGameOver += ShowGameOver;
 
+        // Estado inicial
         UpdateHealth(_playerHealth.CurrentHealth, _playerHealth.MaxHealth);
-        UpdateTowers(gameManager.RemainingTowers, gameManager.TotalTowers);
-        _objectiveText.text = "Destruí las 3 torres de radar";
+        UpdateTowers(_gameManager.RemainingTowers, _gameManager.TotalTowers);
+        UpdateRespawns();
         _respawnMessage.SetActive(false);
         _victoryPanel.SetActive(false);
+        _gameOverPanel.SetActive(false);
     }
 
     private void OnDestroy()
@@ -54,35 +63,44 @@ public class HUDController : MonoBehaviour
             _playerRespawn.OnPlayerDied -= ShowRespawnMessage;
             _playerRespawn.OnPlayerRespawned -= HideRespawnMessage;
         }
-        if (GameManager.Instance != null)
+        if (_gameManager != null)
         {
-            GameManager.Instance.OnTowersChanged -= UpdateTowers;
-            GameManager.Instance.OnGoalOpened -= ShowGoalOpen;
-            GameManager.Instance.OnLevelCompleted -= ShowVictory;
+            _gameManager.OnTowersChanged -= UpdateTowers;
+            _gameManager.OnGoalOpened -= ShowGoalOpen;
+            _gameManager.OnLevelCompleted -= ShowVictory;
+            _gameManager.OnRespawnsChanged -= UpdateRespawns;
+            _gameManager.OnGameOver -= ShowGameOver;
         }
     }
+
     private void UpdateHealth(float current, float max)
     {
         _healthBar.value = current / max;
     }
+
     private void UpdateTowers(int remaining, int total)
     {
         _towersText.text = $"Torres destruidas: {total - remaining}/{total}";
+        if (remaining > 0) _objectiveText.text = $"Destruí las {total} torres de radar";
     }
+
+    private void UpdateRespawns()
+    {
+        _respawnsText.text = $"Respawns: {_gameManager.GetRespawnsLeft(_playerRespawn.PlayerIndex)}";
+    }
+
     private void ShowGoalOpen()
     {
-        _objectiveText.text = "Escudo desactivado. Llega al helipuerto";
+        _objectiveText.text = "¡Escudo desactivado! Llegá al helipuerto";
     }
-    private void ShowRespawnMessage()
-    {
-        _respawnMessage.SetActive(true);
-    }
-    private void HideRespawnMessage()
+
+    private void ShowRespawnMessage() { _respawnMessage.SetActive(true); }
+    private void HideRespawnMessage() { _respawnMessage.SetActive(false); }
+    private void ShowVictory() { _victoryPanel.SetActive(true); }
+
+    private void ShowGameOver()
     {
         _respawnMessage.SetActive(false);
-    }
-    private void ShowVictory()
-    {
-        _victoryPanel.SetActive(true);
+        _gameOverPanel.SetActive(true);
     }
 }
