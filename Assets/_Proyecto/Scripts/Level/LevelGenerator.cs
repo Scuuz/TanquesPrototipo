@@ -170,6 +170,7 @@ public class LevelGenerator : MonoBehaviour
         wall.transform.localPosition = localPosition;
         wall.transform.localScale = size;
         wall.GetComponent<MeshRenderer>().enabled = false;
+        MarkNotWalkable(wall);
     }
 
     private void PlaceCliffs (float width, float length)
@@ -189,6 +190,7 @@ public class LevelGenerator : MonoBehaviour
     {
         GameObject cliff = Instantiate (_cliffPrefab, Vector3.zero, Quaternion.Euler(0f, angle, 0f), _terrainRoot);
         cliff.transform.localScale = new Vector3(sideLength / _cliffLength, 1f, distanceFromCenter / _cliffHalfSize);
+        MarkNotWalkable(cliff);
     }
     
     private void PlaceKeyPoints(float width, float length)
@@ -236,7 +238,8 @@ public class LevelGenerator : MonoBehaviour
 
             GameObject prefab = _obstaclePrefabs[Random.Range(0, _obstaclePrefabs.Length)];
             Quaternion rotation = Quaternion.Euler(0f, Random.Range(0,4) * 90f, 0f);
-            Instantiate(prefab, position, rotation, _obstacleRoot);
+            GameObject obstacle = Instantiate(prefab, position, rotation, _obstacleRoot);
+            MarkNotWalkable(obstacle);
             Reserve(position, radius);
         }
     }
@@ -253,6 +256,13 @@ public class LevelGenerator : MonoBehaviour
         _obstacleRoot.SetParent(transform, false);
 
         _reserved.RemoveRange(_keyReservedCount, _reserved.Count - _keyReservedCount);
+    }
+
+    private void MarkNotWalkable(GameObject target)
+    {
+        NavMeshModifier modifier = target.AddComponent<NavMeshModifier>();
+        modifier.overrideArea = true;
+        modifier.area = NavMesh.GetAreaFromName("Not Walkable");
     }
 
     private bool IsLevelValid()
@@ -299,6 +309,7 @@ public class LevelGenerator : MonoBehaviour
 
                 if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, 4f, NavMesh.AllAreas))
                 {
+                    if (!HasPath(hit.position, SpawnPoint)) continue;
                     enemy.Warp(hit.position);
                     enemy.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
                     break;
