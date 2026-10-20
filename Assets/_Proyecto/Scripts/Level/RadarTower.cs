@@ -15,6 +15,7 @@ using UnityEngine;
 public class RadarTower : MonoBehaviour
 {
     [SerializeField] private float _radarRange = 25f;
+    [SerializeField] private int _scoreValue = 500;
 
     [Header("Ataque aéreo")]
     [SerializeField] private float _firstStrikeDelay = 1.5f;
@@ -28,6 +29,7 @@ public class RadarTower : MonoBehaviour
     private void Awake()
     {
         Health = GetComponent<Health>();
+        Health.OnDied += HandleDestroyed;
         _strikeTimer = _firstStrikeDelay;
     }
 
@@ -79,6 +81,16 @@ public class RadarTower : MonoBehaviour
             }
         }
         return closest;
+    }
+
+    private void OnDestroy()
+    {
+        if (Health != null) Health.OnDied -= HandleDestroyed;
+    }
+
+    private void HandleDestroyed()
+    {
+        ScoreManager.Add(_scoreValue);
     }
 
     private void OnDrawGizmosSelected()

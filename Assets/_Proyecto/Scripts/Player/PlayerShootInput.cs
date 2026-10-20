@@ -27,6 +27,8 @@ public class PlayerShootInput : MonoBehaviour
 
     private void Update()
     {
+        if (PauseMenu.IsPaused) return;
+        
         if (FirePressed())
         {
             _shooting.TryFire();

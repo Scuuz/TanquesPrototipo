@@ -66,6 +66,7 @@ public class AirStrike : MonoBehaviour
 
     private void Explode()
     {
+        CameraFollow.Shake(0.5f, 0.3f);
         if (_explosionPool != null) _explosionPool.Play(transform.position);
 
         foreach (PlayerRespawn player in PlayerRegistry.Players)

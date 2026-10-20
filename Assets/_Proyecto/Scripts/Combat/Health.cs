@@ -25,6 +25,7 @@ public class Health : MonoBehaviour, IDamageable
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDied;
+    public event Action <float> OnDamaged;
 
     private float _shieldEndTime;
 
@@ -46,6 +47,7 @@ public class Health : MonoBehaviour, IDamageable
 
         CurrentHealth = Mathf.Max(CurrentHealth - amount, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, _maxHealth);
+        OnDamaged?.Invoke(amount);
 
         if (CurrentHealth <= 0f)
         {

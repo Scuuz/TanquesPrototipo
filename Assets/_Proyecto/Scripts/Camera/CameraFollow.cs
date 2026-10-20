@@ -31,6 +31,10 @@ public class CameraFollow : MonoBehaviour
     [Header("Suavizado")]
     [SerializeField] private float _smoothTime = 0.2f;
 
+    [Header("Temblor")]
+    [SerializeField] private float _maxShake = 1f;
+
+    public static CameraFollow Main { get; private set; }
     public bool IsStretched { get; private set; }
 
     private Camera _camera;
@@ -38,13 +42,24 @@ public class CameraFollow : MonoBehaviour
     private float _zoomVelocity;
     private Vector3 _focus;
     private float _currentDistance;
+    private Vector3 _basePosition;
+
+    private float _shakeIntensity;
+    private float _shakeDuration;
+    private float _shakeTimer;
 
     private Quaternion ViewRotation => Quaternion.Euler(_pitch, 0f, 0f);
 
     private void Awake()
     {
+        Main = this;
         _camera = GetComponent<Camera>();
         _currentDistance = _distance;
+    }
+
+    private void OnDestroy()
+    {
+        if (Main == this) Main = null;
     }
 
     private void Start()
@@ -53,7 +68,8 @@ public class CameraFollow : MonoBehaviour
 
         _currentDistance = UpdateFocus();
         transform.rotation = ViewRotation;
-        transform.position = _focus + ViewRotation * new Vector3(0f, 0f, -_currentDistance);
+        _basePosition = _focus + ViewRotation * new Vector3(0f, 0f, -_currentDistance);
+        transform.position = _basePosition;
     }
 
     private void LateUpdate()
@@ -62,8 +78,31 @@ public class CameraFollow : MonoBehaviour
         _currentDistance = Mathf.SmoothDamp(_currentDistance, targetDistance, ref _zoomVelocity, _smoothTime);
 
         Vector3 desiredPosition = _focus + ViewRotation * new Vector3(0f, 0f, -_currentDistance);
-        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _velocity, _smoothTime);
+        _basePosition = Vector3.SmoothDamp(_basePosition, desiredPosition, ref _velocity, _smoothTime);
+
+        transform.position = _basePosition + GetShakeOffset();
         transform.rotation = ViewRotation;
+    }
+
+    public static void Shake(float intensity, float duration)
+    {
+        if (Main == null) return;
+
+        Main._shakeIntensity = Mathf.Min(Mathf.Max(Main._shakeIntensity, intensity), Main._maxShake);
+        Main._shakeDuration = Mathf.Max(duration, 0.01f);
+        Main._shakeTimer = Main._shakeDuration;
+    }
+
+    private Vector3 GetShakeOffset()
+    {
+        if (_shakeTimer <= 0f || Time.timeScale == 0f) return Vector3.zero;
+
+        _shakeTimer -= Time.deltaTime;
+
+        float strength = _shakeIntensity * Mathf.Clamp01(_shakeTimer / _shakeDuration);
+        if (_shakeTimer <= 0f) _shakeIntensity = 0f;
+
+        return Random.insideUnitSphere * strength;
     }
 
     private float UpdateFocus()
@@ -104,7 +143,6 @@ public class CameraFollow : MonoBehaviour
             if (player == null || !player.IsAlive) continue;
 
             Vector3 local = worldToView * (player.transform.position - _focus);
-
             float forWidth = Mathf.Abs(local.x) / tanHorizontal - local.z;
             float forHeight = Mathf.Abs(local.y) / tanVertical - local.z;
             needed = Mathf.Max(needed, forWidth, forHeight);

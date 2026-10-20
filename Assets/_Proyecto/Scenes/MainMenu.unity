@@ -2889,7 +2889,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'P1: WASD + Mouse  -  P2: Joystick'
+  m_text: "P1: WASD + Mouse  -  P2: Joystick\nClic izq disparo  -  R2 disparo \nShift
+    boost  -  L2 boost\nEsc / P: pausa  -  Start: pausa"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 76b174bbea238404e907cf149745b928, type: 2}
   m_sharedMaterial: {fileID: -6406574614514267907, guid: 76b174bbea238404e907cf149745b928, type: 2}

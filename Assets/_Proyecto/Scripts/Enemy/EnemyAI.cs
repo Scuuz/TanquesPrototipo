@@ -32,7 +32,10 @@ public class EnemyAI : MonoBehaviour
     [Header("Aim")]
     [SerializeField] private float _aimTurnSpeed = 120f;
     [SerializeField] private float _aimTolerance = 8f;
-    [SerializeField] private float _shotRadius = 0.35f;   // radio aproximado del proyectil
+    [SerializeField] private float _shotRadius = 0.35f;
+
+    [Header("Puntaje")]
+    [SerializeField] private int _scoreValue = 100;
 
     public bool IsAlerted { get; set; }
     public EnemyState CurrentState => _state;
@@ -92,6 +95,7 @@ public class EnemyAI : MonoBehaviour
 
     private void HandleDied()
     {
+        ScoreManager.Add(_scoreValue);
         Died?.Invoke(this);
     }
 

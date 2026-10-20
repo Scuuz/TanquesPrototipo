@@ -76,6 +76,10 @@ PrefabInstance:
       propertyPath: m_Speed
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 6067292087783031991, guid: 36283661c91053c4a82a06f603ea4f18, type: 3}
+      propertyPath: _scoreValue
+      value: 250
+      objectReference: {fileID: 0}
     - target: {fileID: 7206531749235440827, guid: 36283661c91053c4a82a06f603ea4f18, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

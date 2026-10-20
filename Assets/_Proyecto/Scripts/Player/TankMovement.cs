@@ -54,6 +54,7 @@ public class TankMovement : MonoBehaviour
 
     private void Update()
     {
+        if (PauseMenu.IsPaused) return;
         _input = _controlScheme == ControlScheme.Gamepad ? ReadGamepad() : ReadKeyboard();
 
         if (BoostPressed() && Time.time >= _nextBoostTime)
